@@ -24,6 +24,7 @@ Method:
 No uncertainty bands - single deterministic curve, as requested.
 """
 
+import argparse
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
@@ -118,10 +119,30 @@ def generate_synthetic_relperm(phi, Sw, n_points=25):
 # ---------------------------------------------------------------------
 # Demo
 # ---------------------------------------------------------------------
-if __name__ == "__main__":
-    phi_input, Sw_input = 0.25, 0.48   # <-- replace with your log values
+DEFAULT_OUT = '/home/rianr/pypro/myvenv/reservoir_analysis/images/synthetic_relperm_simple.png'
 
-    Sw_grid, Krw, Kro, Ka_est, params = generate_synthetic_relperm(phi_input, Sw_input)
+def fraction(value):
+    """argparse type: float strictly between 0 and 1."""
+    v = float(value)
+    if not 0 < v < 1:
+        raise argparse.ArgumentTypeError(f"{value} must be a fraction between 0 and 1")
+    return v
+
+def parse_args():
+    ap = argparse.ArgumentParser(
+        description="Generate a synthetic Krw/Kro curve from log porosity and water saturation.")
+    ap.add_argument('--phi', type=fraction, required=True, help='porosity from log (fraction)')
+    ap.add_argument('--sw', type=fraction, required=True,
+                    help='water saturation from log (fraction), at/near irreducible')
+    ap.add_argument('--n-points', type=int, default=25, help='number of Sw grid points (default 25)')
+    ap.add_argument('--out', default=DEFAULT_OUT, help='output plot path')
+    return ap.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+    phi_input, Sw_input = args.phi, args.sw
+
+    Sw_grid, Krw, Kro, Ka_est, params = generate_synthetic_relperm(phi_input, Sw_input, args.n_points)
 
     print(f"Input: phi={phi_input}, Sw={Sw_input}")
     print(f"Estimated Ka: {Ka_est:.2f} mD")
@@ -157,5 +178,5 @@ if __name__ == "__main__":
     ax.legend(fontsize=7, loc='upper center', ncol=2)
     ax.grid(alpha=0.3)
     plt.tight_layout()
-    plt.savefig('/home/rian/python_project/myvenv/reservoir_analysis/images/synthetic_relperm_simple.png', dpi=150)
-    print("\nSaved plot to synthetic_relperm_simple.png")
+    plt.savefig(args.out, dpi=150)
+    print(f"\nSaved plot to {args.out}")
